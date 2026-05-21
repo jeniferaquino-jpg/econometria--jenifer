@@ -1,174 +1,257 @@
 # =========================================================
-# GAPMINDER INSIGHTS DASHBOARD - SHINY COMPLETO
-# LISTO PARA SUBIR A SHINYAPPS.IO
+# GLOBAL STATISTICS DASHBOARD
 # =========================================================
-
-# =========================================================
-# INSTALAR PAQUETES (SOLO UNA VEZ)
-# =========================================================
-
 install.packages(c(
   "shiny",
-  "shinydashboard",
   "plotly",
-  "ggplot2",
+  "DT",
   "dplyr",
   "gapminder",
-  "DT",
-  "leaflet",
-  "scales",
   "htmltools",
-  "rsconnect"
+  "bslib",
+  "stringi",
+  "stringr",
+  "ggplot2"
 ))
-
 # =========================================================
-# LIBRERIAS
+# LIBRERÍAS
 # =========================================================
 
 library(shiny)
-library(shinydashboard)
 library(plotly)
-library(ggplot2)
+library(DT)
 library(dplyr)
 library(gapminder)
-library(DT)
-library(leaflet)
-library(scales)
 library(htmltools)
-
-# =========================================================
-# DATA
-# =========================================================
-
-data(gapminder)
-
-gapminder$gdpPercap <- round(gapminder$gdpPercap, 2)
+library(bslib)
+library(stringi)
+library(stringr)
+library(ggplot2)
 
 # =========================================================
 # UI
 # =========================================================
 
-ui <- dashboardPage(
+ui <- fluidPage(
   
-  skin = "blue",
-  
-  dashboardHeader(
-    title = "Gapminder Insights"
+  tags$head(
+    
+    tags$script(
+      src = "https://cdn.tailwindcss.com"
+    ),
+    
+    tags$link(
+      rel = "stylesheet",
+      href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    ),
+    
+    tags$style(HTML("
+
+      body{
+        background:#f8f9ff;
+        font-family:'Inter', sans-serif;
+        padding:20px;
+      }
+
+      .card{
+        background:white;
+        border-radius:20px;
+        padding:24px;
+        margin-bottom:20px;
+        box-shadow:0 4px 12px rgba(0,0,0,0.08);
+      }
+
+      .title-main{
+        font-size:42px;
+        font-weight:700;
+        color:#111827;
+      }
+
+      .subtitle{
+        color:#6b7280;
+        font-size:18px;
+      }
+
+      .section-title{
+        font-size:24px;
+        font-weight:600;
+        margin-bottom:15px;
+      }
+
+      .metric{
+        font-size:38px;
+        font-weight:700;
+        color:#111827;
+      }
+
+    "))
   ),
   
-  dashboardSidebar(
+  # HEADER
+  
+  div(
+    class = "card",
     
-    sidebarMenu(
-      
-      menuItem(
-        "Dashboard",
-        tabName = "dashboard",
-        icon = icon("dashboard")
-      ),
-      
-      selectInput(
-        "continent",
-        "Seleccionar Continente:",
-        choices = c("All", unique(gapminder$continent)),
-        selected = "All"
-      ),
-      
-      sliderInput(
-        "year",
-        "Seleccionar Año:",
-        min = min(gapminder$year),
-        max = max(gapminder$year),
-        value = 2007,
-        step = 5,
-        sep = ""
-      )
+    h1(
+      class = "title-main",
+      "Global Statistics - Trends & Regression"
+    ),
+    
+    p(
+      class = "subtitle",
+      "Interactive Analytics Dashboard"
     )
   ),
   
-  dashboardBody(
+  # CONTROLES
+  
+  div(
+    class = "card",
     
-    tags$head(
-      tags$style(HTML("
-        .content-wrapper, .right-side {
-          background-color: #0b1326;
-        }
-        
-        .small-box {
-          border-radius: 15px;
-        }
-        
-        .box {
-          border-radius: 15px;
-        }
-      "))
-    ),
-    
-    tabItems(
+    fluidRow(
       
-      # =====================================================
-      # TAB DASHBOARD
-      # =====================================================
-      
-      tabItem(
-        tabName = "dashboard",
+      column(
+        4,
         
-        fluidRow(
+        selectInput(
+          "continent",
+          "Select Continent",
           
-          valueBoxOutput("lifeExpBox", width = 4),
-          valueBoxOutput("gdpBox", width = 4),
-          valueBoxOutput("populationBox", width = 4)
-        ),
-        
-        fluidRow(
-          
-          box(
-            title = "Income vs Life Expectancy",
-            status = "primary",
-            solidHeader = TRUE,
-            width = 8,
-            plotlyOutput("bubblePlot", height = 400)
+          choices = c(
+            "All",
+            unique(gapminder$continent)
           ),
           
-          box(
-            title = "Continents Distribution",
-            status = "success",
-            solidHeader = TRUE,
-            width = 4,
-            plotlyOutput("pieChart", height = 400)
-          )
-        ),
+          selected = "All"
+        )
+      ),
+      
+      column(
+        4,
         
-        fluidRow(
+        sliderInput(
+          "year",
+          "Select Year",
           
-          box(
-            title = "GDP Trend",
-            status = "warning",
-            solidHeader = TRUE,
-            width = 6,
-            plotlyOutput("trendPlot", height = 350)
-          ),
+          min = min(gapminder$year),
+          max = max(gapminder$year),
           
-          box(
-            title = "World Map",
-            status = "danger",
-            solidHeader = TRUE,
-            width = 6,
-            leafletOutput("mapPlot", height = 350)
-          )
-        ),
+          value = 2007,
+          step = 5,
+          sep = ""
+        )
+      ),
+      
+      column(
+        4,
         
-        fluidRow(
+        selectInput(
+          "variable",
+          "Select Variable",
           
-          box(
-            title = "Gapminder Data Table",
-            status = "info",
-            solidHeader = TRUE,
-            width = 12,
-            DTOutput("dataTable")
+          choices = c(
+            "Life Expectancy",
+            "GDP per Capita",
+            "Population"
           )
         )
       )
     )
+  ),
+  
+  # TENDENCIAS
+  
+  div(
+    class = "card",
+    
+    h3(
+      class = "section-title",
+      "Historical Regional Trends"
+    ),
+    
+    plotlyOutput(
+      "trendPlot",
+      height = "450px"
+    )
+  ),
+  
+  # REGRESIÓN
+  
+  div(
+    class = "card",
+    
+    h3(
+      class = "section-title",
+      "Regression Analysis"
+    ),
+    
+    plotlyOutput(
+      "regressionPlot",
+      height = "500px"
+    )
+  ),
+  
+  # MÉTRICAS
+  
+  fluidRow(
+    
+    column(
+      4,
+      
+      div(
+        class = "card text-center",
+        
+        h4("Population"),
+        
+        div(
+          class = "metric",
+          textOutput("populationMetric")
+        )
+      )
+    ),
+    
+    column(
+      4,
+      
+      div(
+        class = "card text-center",
+        
+        h4("Average Life Expectancy"),
+        
+        div(
+          class = "metric",
+          textOutput("lifeMetric")
+        )
+      )
+    ),
+    
+    column(
+      4,
+      
+      div(
+        class = "card text-center",
+        
+        h4("Average GDP"),
+        
+        div(
+          class = "metric",
+          textOutput("gdpMetric")
+        )
+      )
+    )
+  ),
+  
+  # TABLA
+  
+  div(
+    class = "card",
+    
+    h3(
+      class = "section-title",
+      "Country Statistics"
+    ),
+    
+    DTOutput("countryTable")
   )
 )
 
@@ -176,11 +259,7 @@ ui <- dashboardPage(
 # SERVER
 # =========================================================
 
-server <- function(input, output) {
-  
-  # =======================================================
-  # FILTRO
-  # =======================================================
+server <- function(input, output, session){
   
   filtered_data <- reactive({
     
@@ -188,6 +267,7 @@ server <- function(input, output) {
       filter(year == input$year)
     
     if(input$continent != "All"){
+      
       data <- data %>%
         filter(continent == input$continent)
     }
@@ -195,154 +275,156 @@ server <- function(input, output) {
     data
   })
   
-  # =======================================================
-  # VALUE BOXES
-  # =======================================================
-  
-  output$lifeExpBox <- renderValueBox({
+  trend_data <- reactive({
     
-    avg_life <- round(mean(filtered_data()$lifeExp), 1)
-    
-    valueBox(
-      value = avg_life,
-      subtitle = "Life Expectancy",
-      icon = icon("heartbeat"),
-      color = "green"
-    )
-  })
-  
-  output$gdpBox <- renderValueBox({
-    
-    avg_gdp <- dollar(mean(filtered_data()$gdpPercap))
-    
-    valueBox(
-      value = avg_gdp,
-      subtitle = "GDP per Capita",
-      icon = icon("dollar-sign"),
-      color = "blue"
-    )
-  })
-  
-  output$populationBox <- renderValueBox({
-    
-    total_pop <- comma(sum(filtered_data()$pop))
-    
-    valueBox(
-      value = total_pop,
-      subtitle = "Population",
-      icon = icon("users"),
-      color = "yellow"
-    )
-  })
-  
-  # =======================================================
-  # BUBBLE PLOT
-  # =======================================================
-  
-  output$bubblePlot <- renderPlotly({
-    
-    p <- ggplot(
-      filtered_data(),
-      aes(
-        x = gdpPercap,
-        y = lifeExp,
-        size = pop,
-        color = continent,
-        text = country
-      )
-    ) +
-      geom_point(alpha = 0.7) +
-      scale_x_log10() +
-      theme_minimal() +
-      labs(
-        x = "GDP per Capita",
-        y = "Life Expectancy"
-      )
-    
-    ggplotly(p, tooltip = c("text", "x", "y"))
-  })
-  
-  # =======================================================
-  # PIE CHART
-  # =======================================================
-  
-  output$pieChart <- renderPlotly({
-    
-    data_pie <- filtered_data() %>%
-      group_by(continent) %>%
-      summarise(pop = sum(pop))
-    
-    plot_ly(
-      data_pie,
-      labels = ~continent,
-      values = ~pop,
-      type = "pie"
-    )
-  })
-  
-  # =======================================================
-  # TREND PLOT
-  # =======================================================
-  
-  output$trendPlot <- renderPlotly({
-    
-    trend_data <- gapminder
+    data <- gapminder
     
     if(input$continent != "All"){
-      trend_data <- trend_data %>%
+      
+      data <- data %>%
         filter(continent == input$continent)
     }
     
-    trend <- trend_data %>%
-      group_by(year) %>%
+    data
+  })
+  
+  # TRENDS
+  
+  output$trendPlot <- renderPlotly({
+    
+    yvar <- switch(
+      input$variable,
+      "Life Expectancy" = "lifeExp",
+      "GDP per Capita" = "gdpPercap",
+      "Population" = "pop"
+    )
+    
+    trend <- trend_data() %>%
+      group_by(year, continent) %>%
       summarise(
-        gdp = mean(gdpPercap)
+        value = mean(.data[[yvar]], na.rm = TRUE),
+        .groups = "drop"
       )
     
-    p <- ggplot(trend, aes(x = year, y = gdp)) +
-      geom_line(color = "blue", linewidth = 1.5) +
-      geom_point(color = "red", size = 2) +
-      theme_minimal() +
-      labs(
-        x = "Year",
-        y = "Average GDP"
+    plot_ly(
+      trend,
+      x = ~year,
+      y = ~value,
+      color = ~continent,
+      type = "scatter",
+      mode = "lines+markers"
+    ) %>%
+      layout(
+        title = paste(input$variable, "Trend"),
+        xaxis = list(title = "Year"),
+        yaxis = list(title = input$variable)
       )
-    
-    ggplotly(p)
   })
   
-  # =======================================================
-  # MAPA
-  # =======================================================
+  # REGRESSION
   
-  output$mapPlot <- renderLeaflet({
+  output$regressionPlot <- renderPlotly({
     
-    data_map <- filtered_data()
+    model <- lm(
+      lifeExp ~ gdpPercap,
+      data = filtered_data()
+    )
     
-    leaflet(data_map) %>%
-      addTiles() %>%
-      addCircleMarkers(
-        lng = ~runif(nrow(data_map), -180, 180),
-        lat = ~runif(nrow(data_map), -60, 80),
-        radius = ~sqrt(pop)/1000,
-        popup = ~paste(
-          "<b>Country:</b>", country,
-          "<br><b>Life Exp:</b>", lifeExp,
-          "<br><b>GDP:</b>", gdpPercap
+    r2 <- round(summary(model)$r.squared, 3)
+    
+    plot_ly(
+      
+      data = filtered_data(),
+      
+      x = ~gdpPercap,
+      y = ~lifeExp,
+      
+      type = "scatter",
+      mode = "markers",
+      
+      color = ~continent,
+      
+      text = ~paste(
+        "Country:", country,
+        "<br>GDP:", round(gdpPercap,2),
+        "<br>Life Exp:", round(lifeExp,1)
+      ),
+      
+      hoverinfo = "text"
+      
+    ) %>%
+      
+      add_lines(
+        x = ~gdpPercap,
+        y = ~predict(model),
+        name = "Regression Line"
+      ) %>%
+      
+      layout(
+        
+        title = paste(
+          "Regression Analysis (R² =",
+          r2,
+          ")"
         ),
-        color = "cyan",
-        fillOpacity = 0.6
+        
+        xaxis = list(
+          title = "GDP per Capita"
+        ),
+        
+        yaxis = list(
+          title = "Life Expectancy"
+        )
       )
   })
   
-  # =======================================================
-  # DATA TABLE
-  # =======================================================
+  # METRICS
   
-  output$dataTable <- renderDT({
+  output$populationMetric <- renderText({
+    
+    total_pop <- sum(filtered_data()$pop)
+    
+    paste0(
+      round(total_pop / 1000000,1),
+      " M"
+    )
+  })
+  
+  output$lifeMetric <- renderText({
+    
+    avg_life <- mean(filtered_data()$lifeExp)
+    
+    paste0(
+      round(avg_life,1),
+      " Years"
+    )
+  })
+  
+  output$gdpMetric <- renderText({
+    
+    avg_gdp <- mean(filtered_data()$gdpPercap)
+    
+    paste0(
+      "$",
+      round(avg_gdp,0)
+    )
+  })
+  
+  # TABLE
+  
+  output$countryTable <- renderDT({
     
     datatable(
-      filtered_data(),
+      
+      filtered_data() %>%
+        select(
+          country,
+          continent,
+          lifeExp,
+          pop,
+          gdpPercap
+        ),
+      
       options = list(
         pageLength = 10,
         scrollX = TRUE
@@ -355,38 +437,4 @@ server <- function(input, output) {
 # RUN APP
 # =========================================================
 
-shinyApp(ui, server)
-
-# =========================================================
-# SUBIR A SHINYAPPS.IO
-# =========================================================
-
-# 1. Crear cuenta en:
-# https://www.shinyapps.io/
-
-# 2. Ejecutar esto en RStudio:
-
-library(rsconnect)
-
-rsconnect::setAccountInfo(
-  name='jeniferaquino',
-  token='A6A0BCC0712317ED2EF95A41DE232ED4',
-  secret='np9PsM2M7vebGhgpm57Ei7ENEVO9iXrCdpikfeEl'
-)
-
-# 3. Luego subir:
-
-rsconnect::deployApp()
-
-# =========================================================
-# IMPORTANTE
-# =========================================================
-
-# Guarda este archivo como:
-# app.R
-
-# Luego abre app.R en RStudio y ejecuta:
-# shinyApp(ui, server)
-
-# O simplemente:
-# Run App
+shinyApp(ui = ui, server = server)
